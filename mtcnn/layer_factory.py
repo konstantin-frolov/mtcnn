@@ -76,8 +76,7 @@ class LayerFactory(object):
         :param shape: list defining the shape of the variable.
         :return: created TF variable.
         """
-        return tf.compat.v1.get_variable(name, shape, trainable=self.__network.is_trainable(),
-                                         use_resource=False)
+        return tf.compat.v1.get_variable(name, shape, trainable=self.__network.is_trainable())
 
     def new_feed(self, name: str, layer_shape: tuple):
         """
@@ -118,10 +117,8 @@ class LayerFactory(object):
         self.__validate_grouping(channels_input, channels_output, group)
 
         # Convolution for a given input and kernel
-        convolve = lambda input_val, kernel: tf.nn.conv2d(input=input_val,
-                filters=kernel, 
-                strides=[1, stride_size[1], stride_size[0], 1],
-                padding=padding)
+        convolve = lambda input_val, kernel: tf.nn.conv2d(input_val, kernel, [1, stride_size[1], stride_size[0], 1],
+                                                          padding=padding)
 
         with tf.compat.v1.variable_scope(name) as scope:
             kernel = self.__make_var('weights', shape=[kernel_size[1], kernel_size[0], channels_input // group, channels_output])
@@ -171,7 +168,7 @@ class LayerFactory(object):
 
         input_layer = self.__network.get_layer(input_layer_name)
 
-        output = tf.nn.max_pool2d(input=input_layer,
+        output = tf.nn.max_pool(input_layer,
                                 ksize=[1, kernel_size[1], kernel_size[0], 1],
                                 strides=[1, stride_size[1], stride_size[0], 1],
                                 padding=padding,
@@ -196,7 +193,7 @@ class LayerFactory(object):
 
             weights = self.__make_var('weights', shape=[dimension, output_count])
             biases = self.__make_var('biases', shape=[output_count])
-            operation = tf.compat.v1.nn.relu_layer if relu else tf.compat.v1.nn.xw_plus_b
+            operation = tf.nn.relu_layer if relu else tf.compat.v1.nn.xw_plus_b
 
             fc = operation(vectorized_input, weights, biases, name=name)
 
@@ -213,15 +210,15 @@ class LayerFactory(object):
         input_layer = self.__network.get_layer(input_layer_name)
 
         if LooseVersion(tf.__version__) < LooseVersion("1.5.0"):
-            max_axis = tf.reduce_max(input_tensor=input_layer, axis=axis, keepdims=True)
+            max_axis = tf.reduce_max(input_layer, axis, keep_dims=True)
             target_exp = tf.exp(input_layer - max_axis)
-            normalize = tf.reduce_sum(input_tensor=target_exp, axis=axis, keepdims=True)
+            normalize = tf.reduce_sum(target_exp, axis, keep_dims=True)
         else:
-            max_axis = tf.reduce_max(input_tensor=input_layer, axis=axis, keepdims=True)
+            max_axis = tf.reduce_max(input_layer, axis, keepdims=True)
             target_exp = tf.exp(input_layer - max_axis)
-            normalize = tf.reduce_sum(input_tensor=target_exp, axis=axis, keepdims=True)
+            normalize = tf.reduce_sum(target_exp, axis, keepdims=True)
 
-        softmax = tf.math.divide(target_exp, normalize, name)
+        softmax = tf.compat.v1.div(target_exp, normalize, name)
 
         self.__network.add_layer(name, layer_output=softmax)
 
