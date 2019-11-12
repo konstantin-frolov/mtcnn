@@ -89,7 +89,7 @@ class Network(object):
                 with tf.compat.v1.variable_scope(layer_name, reuse=True):
                     for param_name, data in weights_values[layer_name].items():
                         try:
-                            var = tf.compat.v1.get_variable(param_name, use_resource=False)
+                            var = tf.compat.v1.get_variable(param_name)
                             self._session.run(var.assign(data))
 
                         except ValueError:
